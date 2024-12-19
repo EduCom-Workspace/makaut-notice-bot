@@ -2,6 +2,7 @@ import { Context, Hono } from "hono";
 import { handelTgCallback } from "./controllers/handelTgCallback";
 import { logger } from "hono/logger";
 import { checkNewNotices } from "./controllers/handelNotices";
+import { PrivacyPolicy } from "./html/privacyPolicy";
 
 // Define Bindings type for environment variables
 export type Env = {
@@ -20,7 +21,6 @@ app.get("/", (c: Context) => {
     message: "Hello from Hono!",
     timestamp: new Date().toISOString(),
     bindings: {
-      TG_TOKEN: c.env.TG_TOKEN,
     },
   });
 });
@@ -31,6 +31,10 @@ app.on(["GET", "POST"], "/tg/callback", handelTgCallback);
 app.get("/checkNotices", async (c: Context) => {
   const res = await checkNewNotices(c);
   return c.json(res);
+});
+
+app.get("/privacy-policy", (c: Context) => {
+  return c.html(PrivacyPolicy());
 });
 
 app.get("/test", async (c: Context) => {
