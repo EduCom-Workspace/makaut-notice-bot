@@ -3,14 +3,10 @@ import { TgBot } from "src/Handlers/TgBot";
 
 export const handelTgCallback = async (c: Context) => {
   try {
-    // define the tgbot instance
-
     const update = await c.req.json(); // Parse the update sent by Telegram
 
-    // console.log("Received update:", update);
-    // console.log("Token: ",c.env.TG_TOKEN);
-
     const tgBot = new TgBot(c.env.TG_TOKEN);
+
     if (update.message) {
       const chatId = update.message.chat.id;
       const username = update.message.chat.username || null;
@@ -19,7 +15,6 @@ export const handelTgCallback = async (c: Context) => {
 
       let message: string = "";
 
-      // console.log(chatId, username, first_name, text);
       if (!chatId || !username || !first_name || !text) {
         return c.json({ ok: true });
       }
@@ -30,7 +25,6 @@ export const handelTgCallback = async (c: Context) => {
         )
           .bind(chatId)
           .first(); // Use .first() for a single result
-        // console.log(checkExisting);
 
         if (!checkExisting) {
           // Check for null, not length
@@ -39,7 +33,6 @@ export const handelTgCallback = async (c: Context) => {
           )
             .bind(chatId, username, first_name)
             .run();
-          // console.log("Text START: ", success);
         }
         message = `Hello, ${first_name}! This is Makaut Notice Bot.\nGet updates instantly as soon as Makaut publishes notices.\nTo subscribe, send /subscribe \nTo unsubscribe, send /unsubscribe \nTo get Last Notice, send /lastupdates`;
       } else if (text === "/subscribe") {
@@ -48,7 +41,6 @@ export const handelTgCallback = async (c: Context) => {
         )
           .bind(chatId, 1)
           .first(); // Use .first() for a single result
-        // console.log("Text SUBSCRIBE: ", isSubscribed);
 
         if (!isSubscribed) {
           // Check for null, not length
@@ -57,18 +49,17 @@ export const handelTgCallback = async (c: Context) => {
           )
             .bind(1, chatId)
             .run();
-          // console.log("Text New SUBSCRIBE: ", success);
           message = `Subscribed to Makaut notices! You'll receive updates as soon as they're published.`;
         } else {
           message = `You're already subscribed to Makaut notices.`;
         }
       } else if (text === "/unsubscribe") {
-        const { success } = await c.env.DB.prepare(
+        const isSubscribed = await c.env.DB.prepare(
           "SELECT * FROM UserInfo WHERE tgid = ? AND isSubscribed = ?"
         )
           .bind(chatId, 1) // Check if the user is subscribed (isSubscribed = 1)
-          .run();
-        if (success) {
+          .first();
+        if (isSubscribed.length > 0) {
           // If user is subscribed, unsubscribe them
           await c.env.DB.prepare(
             "UPDATE UserInfo SET isSubscribed = ? WHERE tgid = ?"
@@ -87,7 +78,6 @@ export const handelTgCallback = async (c: Context) => {
         const notices = await c.env.DB.prepare(
           "SELECT * FROM LastNotices ORDER BY noticeid ASC LIMIT 2"
         ).all();
-        // console.log(lastNotices);
         const lastNotices = notices.results;
 
         if (lastNotices.length > 0) {
